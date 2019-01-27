@@ -35,7 +35,7 @@ void setup() {
   _joystick.begin(false);
   _joystick.setRxAxisRange(-32767, 32767);
   _joystick.setRyAxisRange(-32767, 32767);
-  _joystick.setRzAxisRange(-32767, 32767);
+  _joystick.setRzAxisRange(0, 3600);
   
   // start communication with IMU 
   int status = _imu.begin();
@@ -51,7 +51,7 @@ void setup() {
   _imu.setDlpfBandwidth(MPU9250::DLPF_BANDWIDTH_20HZ);
 
   // 200 Hz update rate (srd = 4)
-  _imu.setSrd(4);
+  _imu.setSrd(0);
   
   // enabling the data ready interrupt
   _imu.enableDataReadyInterrupt();
@@ -60,10 +60,11 @@ void setup() {
   pinMode(7,INPUT);
   attachInterrupt(digitalPinToInterrupt(7), readIMU, RISING);
 
-  _filter.begin(200);
+  _filter.begin(1000);
 }
 
 unsigned long _time = 0;
+float dp = 0, dy = 0, dr = 0;
 float ax, ay, az, gx, gy, gz, mx, my, mz;
 
 void loop() {
@@ -78,31 +79,45 @@ void loop() {
 
     gx = _imu.getGyroX_rads();
     gy = _imu.getGyroY_rads();
-    gz = _imu.getGyroZ_rads();
+    gz = -_imu.getGyroZ_rads();
 
-    mx = _imu.getMagX_uT();
-    my = _imu.getMagY_uT();
-    mz = _imu.getMagZ_uT();
+    mx = 0;//_imu.getMagX_uT();
+    my = 0;//_imu.getMagY_uT();
+    mz = 0;//_imu.getMagZ_uT();
 
     _filter.update(gx, gy, gz, ax, ay, az, mx, my, mz);
      
     _dataAvailable = false;
   }
 
-  unsigned long now = millis();
-  if (now - _time > 10) {
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    //_imu.disableDataReadyInterrupt();
+    //_imu.calibrateGyro();
+    //_filter.reset();
+    //Serial.println("Calibrated gyro");
+    //_imu.enableDataReadyInterrupt();
     
-    /*Serial.print(_filter.getRoll(), 6);
-    Serial.print(" ");
-    Serial.print(_filter.getPitch(), 6);
-    Serial.print(" ");
-    Serial.println(_filter.getYaw(), 6);*/
+  }
+  else {
+    unsigned long now = millis();
+    if (now - _time > 10) {
 
-    _joystick.setRxAxis(((_filter.getRoll() - 180) / 180) * 32767);    
-    _joystick.setRyAxis((_filter.getPitch() / 90) * 32767);
-    _joystick.setRzAxis(((_filter.getYaw() / 360) * 65536) - 32767);
-    _joystick.sendState();
-
-    _time = now;
+      //Serial.println(gz, 6);
+      //Serial.println(_filter.getYaw(), 6);
+      //Serial.println(_filter.getYaw(), 6);
+      //Serial.println(_filter.getYaw(), 6);
+      
+     /*Serial.print(" ");
+      Serial.print(_filter.getPitch(), 6);
+      Serial.print(" ");
+      Serial.println(_filter.getYaw(), 6);*/
+  
+      _joystick.setRxAxis((((_filter.getRoll() - dr) - 180) / 180) * 32767);    
+      _joystick.setRyAxis(((_filter.getPitch() - dp) / 90) * 32767);
+      _joystick.setRzAxis(_filter.getYaw() * 10);
+      _joystick.sendState();
+  
+      _time = now;
+    }
   }
 }

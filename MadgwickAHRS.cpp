@@ -25,7 +25,7 @@
 //-------------------------------------------------------------------------------------------
 // Definitions
 
-#define sampleFreqDef   512.0f          // sample frequency in Hz
+#define sampleFreqDef   200.0f          // sample frequency in Hz
 #define betaDef         0.1f            // 2 * proportional gain
 
 
@@ -36,11 +36,16 @@
 // AHRS algorithm update
 Madgwick::Madgwick() : roll(0), pitch(0), yaw(0), anglesComputed(0)  {
 	beta = betaDef;
-	q0 = 1.0f;
-	q1 = 0.0f;
-	q2 = 0.0f;
-	q3 = 0.0f;
+  reset();
 	invSampleFreq = 1.0f / sampleFreqDef;
+}
+
+void Madgwick::reset()
+{
+  q0 = 1.0f;
+  q1 = 0.0f;
+  q2 = 0.0f;
+  q3 = 0.0f;
 }
 
 void Madgwick::update(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz) {
